@@ -176,6 +176,27 @@ def build_agent_memory_md(agent_name: str, events: list, tasks: list) -> str:
 
     return "\n".join(lines[:50])
 
+# ── Direct session logging (for Claude Code via Supabase MCP) ─────────────────
+def log_session(summary: str, decisions: list = None, outcomes: list = None, agents: list = None):
+    """Log a session directly to swarm_sessions. Call from Claude Code at session close.
+
+    Usage via Supabase MCP — insert into swarm_sessions:
+        session_date: YYYY-MM-DD (today)
+        summary: "what happened this session"
+        decisions: ["decision 1", "decision 2"]  (JSONB)
+        outcomes: ["outcome 1", "outcome 2"]  (JSONB)
+        agents_active: ["holly", "q", "nobody"]  (text[])
+    """
+    row = {
+        "session_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "summary": summary,
+        "decisions": json.dumps(decisions or []),
+        "outcomes": json.dumps(outcomes or []),
+        "agents_active": agents or [],
+    }
+    supabase.table("swarm_sessions").insert(row).execute()
+    return row
+
 # ── GitHub file write ──────────────────────────────────────────────────────────
 def write_to_github(path: str, content: str, message: str):
     """Create or update a file in the GitHub repo via API."""
